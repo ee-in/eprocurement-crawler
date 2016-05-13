@@ -5,7 +5,7 @@ Crawler for Taiwan government e-procurement website.
 Python 3
 
 # Dependency
-requests, lxml, beautifulsoup4, mysql-connector-python-rf
+requests, lxml, beautifulsoup4, psycopg2, mysql-connector-python-rf
 
 # Database
-MySQL. Please create database and tables with schema.sql
+PostgreSQL or MySQL. Please create database and tables with schema_posgresql.sql or schema_mysql.sql
