@@ -26,8 +26,8 @@ def init(filename):
     pk = soup.find('div', {'class': 'pkAtmMain'}).text
     case_no = soup.find('div', {'class': 'tenderCaseNo'}).text
     root = soup.find('table', {'class': 'table_block tender_table'})
-    logger.debug('pkAtmMain: ' + pk_atm_main)
-    logger.debug('tenderCaseNo: ' + tender_case_no)
+    logger.debug('pkAtmMain: ' + pk)
+    logger.debug('tenderCaseNo: ' + case_no)
 
     return pk, case_no, root
 
