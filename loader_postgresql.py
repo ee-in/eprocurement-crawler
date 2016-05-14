@@ -33,13 +33,13 @@ def gen_insert_sql(table, data_dict):
             columns += k
 
             if isinstance(v, str):
-                vstr = '$STRTAG$' + v + '$STRTAG$'
+                vstr = '$STRTAG$' + str(v) + '$STRTAG$'
             elif isinstance(v, bool):
                 vstr = '1' if v else '0'
             elif isinstance(v, datetime) or isinstance(v, date):
                 vstr = '\'' + str(v) + '\''
             else:
-                vstr = '$STRTAG$' + v + '$STRTAG$'
+                vstr = '$STRTAG$' + str(v) + '$STRTAG$'
 
             values += vstr
             dup_update += k + '=' + vstr
