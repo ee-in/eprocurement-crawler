@@ -74,6 +74,7 @@ def load_declaration(cnx, file_name):
         logger.warn(outstr)
         with open('load.err', 'a', encoding='utf-8') as err_file:
             err_file.write(outstr)
+        cnx.rollback()
     except AttributeError as e:
         outstr = 'Corrupted content. Update skipped (primary_key: {})\n\t{}'.format(primary_key, e)
         logger.warn(outstr)
@@ -132,6 +133,7 @@ def load_awarded(cnx, file_name):
         logger.warn(outstr)
         with open('load.err', 'a', encoding='utf-8') as err_file:
             err_file.write(outstr)
+        cnx.rollback()
     except AttributeError as e:
         outstr = 'Corrupted content. Update skipped (pkAtmMain: {}, tenderCaseNo: {})\n\t{}'.format(pk_atm_main,
                                                                                                     tender_case_no,
