@@ -16,15 +16,6 @@ __version__ = "1.0.0b"
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-trantab = str.maketrans(
-    {'\'': '\\\'',
-     '\"': '\\\"',
-     '\b': '\\b',
-     '\n': '\\n',
-     '\r': '\\r',
-     '\t': '\\t',
-     '\\': '\\\\',})
-
 
 def gen_insert_sql(table, data_dict):
     sql_template = u'INSERT INTO {} ({}) VALUES ({}) ON CONFLICT ON CONSTRAINT {} DO UPDATE SET {}'
@@ -42,13 +33,13 @@ def gen_insert_sql(table, data_dict):
             columns += k
 
             if isinstance(v, str):
-                vstr = '\'' + v.translate(trantab) + '\''
+                vstr = '$STRTAG$' + v + '$STRTAG$'
             elif isinstance(v, bool):
                 vstr = '1' if v else '0'
             elif isinstance(v, datetime) or isinstance(v, date):
                 vstr = '\'' + str(v) + '\''
             else:
-                vstr = str(v)
+                vstr = '$STRTAG$' + v + '$STRTAG$'
 
             values += vstr
             dup_update += k + '=' + vstr
