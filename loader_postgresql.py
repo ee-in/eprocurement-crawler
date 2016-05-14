@@ -39,7 +39,7 @@ def gen_insert_sql(table, data_dict):
             elif isinstance(v, datetime) or isinstance(v, date):
                 vstr = '\'' + str(v) + '\''
             else:
-                vstr = '$STRTAG$' + str(v) + '$STRTAG$'
+                vstr = str(v)
 
             values += vstr
             dup_update += k + '=' + vstr
