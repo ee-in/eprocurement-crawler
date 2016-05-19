@@ -1,0 +1,123 @@
+#!/bin/sh
+# A script to run Taiwan eProcurement crawler
+ 
+function usage
+{
+    echo "Usage: eprocurement [[[--conf file] [--start YYYYmmdd] [--end YYYYmmdd] [--all] [--qa] [--qd] [--dl] [--load]] | [--help]]"
+}
+
+#### Main
+
+conf_file="${PWD}/eprocurement.conf"
+start_date=""
+end_date=""
+do_qa=false
+do_qd=false
+do_dl=false
+do_load=false
+
+while [ "$1" != "" ]; do
+    case $1 in
+        --conf )     shift
+                     conf_file=$1
+                     ;;
+        --start )    shift
+                     start_date=$1
+                     ;;
+        --end )      shift
+                     end_date=$1
+                     ;;
+        --all )      do_qa=true
+                     do_qd=true
+                     do_dl=true
+                     do_load=true
+                     ;;
+        --qa )       do_qa=true
+                     ;;
+        --qd )       do_qd=true
+                     ;;
+        --dl )       do_dl=true
+                     ;;
+        --load )     do_load=true
+                     ;;
+        --help )     usage
+                     exit
+                     ;;
+        * )          usage
+                     exit 1
+    esac
+    shift
+done
+
+source $conf_file
+printf "eProcurement crawler configuration:\n"
+printf "  Python:              %s\n" "$python_exec"
+printf "  Crawler path:        %s\n" "$crawler_path"
+printf "  Awarded queryer:     %s\n" "$queryer_awarded"
+printf "  Declaration queryer: %s\n" "$queryer_declaration"
+printf "  Downloader:          %s\n" "$downloader"
+printf "  Loader:              %s\n" "$loader"
+printf "  Dataset path:        %s\n" "$dataset_path"
+printf "  Awarded prefix:      %s\n" "$prefix_awarded"
+printf "  Declaration prefix:  %s\n" "$prefix_declaration"
+printf "  Last update date:    %s\n" "$last_update"
+printf "\n"
+
+if [ "$start_date" = "" ]; then
+    start_date=$(date -d "$last_update +1 days" +"%Y%m%d")
+fi
+
+if [ "$end_date" = "" ]; then
+    end_date=$(date -d "-1 days" +"%Y%m%d")
+fi
+
+file_awarded="$dataset_path${prefix_awarded}_${start_date}_${end_date}.txt"
+dir_awarded="$dataset_path${prefix_awarded}_${start_date}_${end_date}"
+file_declaration="$dataset_path${prefix_declaration}_${start_date}_${end_date}.txt"
+dir_declaration="$dataset_path${prefix_declaration}_${start_date}_${end_date}"
+printf "Output files and directories:\n"
+if [ "$do_qa" = true ]; then
+    printf "  Awarded bid list: %s\n" "$file_awarded"
+fi
+if [ "$do_dl" = true ]; then
+    printf "  Awarded bid directory: %s\n" "$dir_awarded"
+fi
+if [ "$do_qd" = true ]; then
+    printf "  Declaration bid list: %s\n" "$file_declaration"
+fi
+if [ "$do_dl" = true ]; then
+    printf "  Declaration bid directory: %s\n" "$dir_declaration"
+fi
+printf "\n"
+
+queryer_awarded_fp="$crawler_path$queryer_awarded"
+queryer_declaration_fp="$crawler_path$queryer_declaration"
+downloader_fp="$crawler_path$downloader"
+loader_fp="$crawler_path$loader"
+
+if [ "$do_qa" = true ]; then
+    echo "Start queryer (awarded)..."
+    $python_exec $queryer_awarded_fp -s $start_date \
+                                     -e $end_date \
+                                     -f $file_awarded
+fi
+
+if [ "$do_qd" = true ]; then
+    echo "Start queryer (declaration)..."
+    $python_exec $queryer_declaration_fp -s $start_date \
+                                         -e $end_date \
+                                         -f $file_awarded
+fi
+
+if [ "$do_dl" = true ]; then
+    if [ -f "$file_awarded" ]; then
+        echo "Start downloader (awarded)..."
+        $python_exec $downloader_fp -f $file_awarded -d $dir_awarded
+    fi
+
+    if [ -f "$file_declaration" ]; then
+        echo "Start downloader (declaration)..."
+        $python_exec $downloader_fp -f $file_declaration -d $dir_declaration
+    fi
+fi
+
