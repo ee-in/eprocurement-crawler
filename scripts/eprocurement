@@ -106,7 +106,7 @@ if [ "$do_qd" = true ]; then
     echo "Start queryer (declaration)..."
     $python_exec $queryer_declaration_fp -s $start_date \
                                          -e $end_date \
-                                         -f $file_awarded
+                                         -f $file_declaration
 fi
 
 if [ "$do_dl" = true ]; then
