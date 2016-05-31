@@ -1,8 +1,7 @@
 #!/bin/sh
 # A script to run Taiwan eProcurement crawler
  
-function usage
-{
+usage () {
     echo "Usage: eprocurement [[[--conf file] [--start YYYYmmdd] [--end YYYYmmdd] [--all] [--qa] [--qd] [--dl] [--load]] | [--help]]"
 }
 
