@@ -28,6 +28,8 @@ def parse_args():
                  dest='list_filename', type='string', default='')
     p.add_option('-d', '--directory', action='store',
                  dest='directory', type='string', default='bid_detail')
+    p.add_option('-x', '--proxy', action='store',
+                 dest='proxy', type='string', default='')
     return p.parse_args()
 
 
@@ -72,7 +74,8 @@ if __name__ == '__main__':
                     filename = "%s_%s" % (pkAtmMain, tenderCaseNo)
 
             try:
-                request_get = requests.get(page_link)
+                proxies = {} if not options.proxy.strip() else {'http': options.proxy.strip()}
+                request_get = requests.get(page_link, proxies=proxies)
                 response = request_get.text
 
                 soup = BeautifulSoup(''.join(response), 'lxml')
