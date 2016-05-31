@@ -61,6 +61,7 @@ printf "  Dataset path:        %s\n" "$dataset_path"
 printf "  Awarded prefix:      %s\n" "$prefix_awarded"
 printf "  Declaration prefix:  %s\n" "$prefix_declaration"
 printf "  Last update date:    %s\n" "$last_update"
+printf "  Proxy:               $s\n" "$proxy"
 printf "\n"
 
 if [ "$start_date" = "" ]; then
@@ -112,12 +113,20 @@ fi
 if [ "$do_dl" = true ]; then
     if [ -f "$file_awarded" ]; then
         echo "Start downloader (awarded)..."
-        $python_exec $downloader_fp -f $file_awarded -d $dir_awarded
+        if [ "$proxy" != "" ]; then
+            $python_exec $downloader_fp -f $file_awarded -d $dir_awarded -x $proxy
+        else
+            $python_exec $downloader_fp -f $file_awarded -d $dir_awarded
+        fi
     fi
 
     if [ -f "$file_declaration" ]; then
         echo "Start downloader (declaration)..."
-        $python_exec $downloader_fp -f $file_declaration -d $dir_declaration
+        if [ "$proxy" != "" ]; then
+            $python_exec $downloader_fp -f $file_declaration -d $dir_declaration -x $proxy
+        else
+            $python_exec $downloader_fp -f $file_declaration -d $dir_declaration
+        fi
     fi
 fi
 
