@@ -4,6 +4,7 @@
 Modified from the source code provided by https://github.com/ywchiu/pythonetl"""
 
 import os
+import sys
 import requests
 import logging
 import time
@@ -96,6 +97,8 @@ if __name__ == '__main__':
                         logger.info(
                             'Writing bid detail (primaryKey: {})'.format(primaryKey))
             except:
+                e = sys.exc_info()[0]
+                logger.warn("Warning: %s", e)
                 with open(options.list_filename.strip() + '.download.err', 'a', encoding='utf-8') as err_file:
                     err_file.write(page_link + '\n')
                 continue
