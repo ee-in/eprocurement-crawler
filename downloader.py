@@ -58,6 +58,11 @@ def do_download(list_filename, directory, page_link, proxies=None, sleep=0):
         else:
             filename = "%s_%s" % (pkAtmMain, tenderCaseNo)
 
+    file_path = '{}/{}.txt'.format(directory, filename)
+    if os.path.isfile(file_path) and os.path.getsize(file_path) > 0:
+        logger.info('File already exists. Download skipped ({})'.format(file_path))
+        return
+
     try:
         if proxies is None:
             request_get = requests.get(page_link)
@@ -71,13 +76,9 @@ def do_download(list_filename, directory, page_link, proxies=None, sleep=0):
         else:
             print_area = soup.find('div', {"id": "print_area"})
 
-        file_path = '{}/{}.txt'.format(directory, filename)
-        if os.path.isfile(file_path) and os.path.getsize(file_path) > 0:
-            logger.info('File already exists. Download skipped ({})'.format(file_path))
-            return
-
+        prettified = print_area.prettify()
         with open(file_path, 'w', encoding='utf-8') as bid_detail:
-            bid_detail.write(print_area.prettify())
+            bid_detail.write(prettified)
             if m1 is not None:
                 bid_detail.write('<div class="pkAtmMain">' + pkAtmMain + '</div>\n')
                 bid_detail.write('<div class="tenderCaseNo">' + tenderCaseNo + '</div>')
