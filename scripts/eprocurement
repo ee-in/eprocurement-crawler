@@ -62,31 +62,38 @@ printf "  Declaration prefix:  %s\n" "$prefix_declaration"
 printf "  Last update date:    %s\n" "$last_update"
 printf "  Proxy:               %s\n" "$proxy"
 printf "  Parallel:            %s\n" "$parallel"
+printf "  Max retry:           %s\n" "$max_retry"
 printf "\n"
 
-if [ "$start_date" = "" ]; then
+if [ "$start_date" == "" ]; then
     start_date=$(date -d "$last_update +1 days" +"%Y%m%d")
 fi
 
-if [ "$end_date" = "" ]; then
+if [ "$end_date" == "" ]; then
     end_date=$(date -d "-1 days" +"%Y%m%d")
 fi
 
+if [ "$max_retry" == "" ]; then
+    max_retry=10
+fi
+
 file_awarded="$dataset_path${prefix_awarded}_${start_date}_${end_date}.txt"
+file_awarded_dl_err="${file_awarded}.download.err"
 dir_awarded="$dataset_path${prefix_awarded}_${start_date}_${end_date}"
 file_declaration="$dataset_path${prefix_declaration}_${start_date}_${end_date}.txt"
+file_declaration_dl_err="${file_declaration}.download.err"
 dir_declaration="$dataset_path${prefix_declaration}_${start_date}_${end_date}"
 printf "Output files and directories:\n"
-if [ "$do_qa" = true ]; then
+if [ "$do_qa" == true ]; then
     printf "  Awarded bid list: %s\n" "$file_awarded"
 fi
-if [ "$do_dl" = true ]; then
+if [ "$do_dl" == true ]; then
     printf "  Awarded bid directory: %s\n" "$dir_awarded"
 fi
-if [ "$do_qd" = true ]; then
+if [ "$do_qd" == true ]; then
     printf "  Declaration bid list: %s\n" "$file_declaration"
 fi
-if [ "$do_dl" = true ]; then
+if [ "$do_dl" == true ]; then
     printf "  Declaration bid directory: %s\n" "$dir_declaration"
 fi
 printf "\n"
@@ -96,37 +103,55 @@ queryer_declaration_fp="$crawler_path$queryer_declaration"
 downloader_fp="$crawler_path$downloader"
 loader_fp="$crawler_path$loader"
 
-if [ "$do_qa" = true ]; then
+if [ "$do_qa" == true ]; then
     echo "Start queryer (awarded)..."
     $python_exec $queryer_awarded_fp -s $start_date \
                                      -e $end_date \
                                      -f $file_awarded
 fi
 
-if [ "$do_qd" = true ]; then
+if [ "$do_qd" == true ]; then
     echo "Start queryer (declaration)..."
     $python_exec $queryer_declaration_fp -s $start_date \
                                          -e $end_date \
                                          -f $file_declaration
 fi
 
-if [ "$do_dl" = true ]; then
-    if [ -f "$file_awarded" ]; then
-        echo "Start downloader (awarded)..."
-        if [ "$proxy" != "" ]; then
-            $python_exec $downloader_fp -f $file_awarded -d $dir_awarded -x $proxy -p $parallel
-        else
-            $python_exec $downloader_fp -f $file_awarded -d $dir_awarded -p $parallel
+if [ "$do_dl" == true ]; then
+    dl_flag=true
+    cur_retry=0
+    while [ "$dl_flag" == true -a "$cur_retry" -lt "$max_retry" ]
+    do
+        if [ -f "$file_awarded" ]; then
+            echo "Start downloader (awarded)..."
+            if [ "$proxy" != "" ]; then
+                $python_exec $downloader_fp -f $file_awarded -d $dir_awarded -x $proxy -p $parallel
+            else
+                $python_exec $downloader_fp -f $file_awarded -d $dir_awarded -p $parallel
+            fi
         fi
-    fi
 
-    if [ -f "$file_declaration" ]; then
-        echo "Start downloader (declaration)..."
-        if [ "$proxy" != "" ]; then
-            $python_exec $downloader_fp -f $file_declaration -d $dir_declaration -x $proxy -p $parallel
-        else
-            $python_exec $downloader_fp -f $file_declaration -d $dir_declaration -p $parallel
+        if [ -f "$file_declaration" ]; then
+            echo "Start downloader (declaration)..."
+            if [ "$proxy" != "" ]; then
+                $python_exec $downloader_fp -f $file_declaration -d $dir_declaration -x $proxy -p $parallel
+            else
+                $python_exec $downloader_fp -f $file_declaration -d $dir_declaration -p $parallel
+            fi
         fi
-    fi
+
+        dl_flag=false
+        if [ -f "$file_awarded_dl_err" ]; then
+            mv "$file_awarded_dl_err" "$file_awarded"
+            dl_flag=true
+        fi
+        if [ -f "$file_declaration_dl_err" ]; then
+            mv "$file_declaration_dl_err" "$file_declaration"
+            dl_flag=true
+        fi
+
+        printf "Total retry count: %s\n" "$cur_retry"
+        cur_retry=$(($cur_retry + 1))
+    done
 fi
 
