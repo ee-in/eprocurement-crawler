@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # A script to run Taiwan eProcurement crawler
  
 usage () {
@@ -60,7 +60,8 @@ printf "  Dataset path:        %s\n" "$dataset_path"
 printf "  Awarded prefix:      %s\n" "$prefix_awarded"
 printf "  Declaration prefix:  %s\n" "$prefix_declaration"
 printf "  Last update date:    %s\n" "$last_update"
-printf "  Proxy:               $s\n" "$proxy"
+printf "  Proxy:               %s\n" "$proxy"
+printf "  Parallel:            %s\n" "$parallel"
 printf "\n"
 
 if [ "$start_date" = "" ]; then
@@ -113,18 +114,18 @@ if [ "$do_dl" = true ]; then
     if [ -f "$file_awarded" ]; then
         echo "Start downloader (awarded)..."
         if [ "$proxy" != "" ]; then
-            $python_exec $downloader_fp -f $file_awarded -d $dir_awarded -x $proxy
+            $python_exec $downloader_fp -f $file_awarded -d $dir_awarded -x $proxy -p $parallel
         else
-            $python_exec $downloader_fp -f $file_awarded -d $dir_awarded
+            $python_exec $downloader_fp -f $file_awarded -d $dir_awarded -p $parallel
         fi
     fi
 
     if [ -f "$file_declaration" ]; then
         echo "Start downloader (declaration)..."
         if [ "$proxy" != "" ]; then
-            $python_exec $downloader_fp -f $file_declaration -d $dir_declaration -x $proxy
+            $python_exec $downloader_fp -f $file_declaration -d $dir_declaration -x $proxy -p $parallel
         else
-            $python_exec $downloader_fp -f $file_declaration -d $dir_declaration
+            $python_exec $downloader_fp -f $file_declaration -d $dir_declaration -p $parallel
         fi
     fi
 fi
