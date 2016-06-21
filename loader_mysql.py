@@ -10,6 +10,7 @@ import extractor_declaration as etd
 from datetime import datetime, date
 from mysql.connector import errorcode
 from optparse import OptionParser
+from joblib import Parallel, delayed
 
 __author__ = "Yu-chun Huang"
 __version__ = "1.0.0b"
@@ -59,7 +60,7 @@ def gen_insert_sql(table, data_dict):
     return sql_str
 
 
-def load_declaration(cnx, file_name):
+def load_declaration(cnx_info, file_name):
     primary_key, root_element = etd.init(file_name)
     if root_element is None or primary_key is None or primary_key == '':
         logger.error('Fail to extract data from file: ' + file_name)
@@ -68,6 +69,8 @@ def load_declaration(cnx, file_name):
     logger.info('Updating database (primaryKey: {})'.format(primary_key))
 
     try:
+        cnx = mysql.connector.connect(**cnx_info)
+        cnx.autocommit = False
         cur = cnx.cursor(buffered=True)
 
         data = etd.get_organization_info_dic(root_element)
@@ -81,18 +84,25 @@ def load_declaration(cnx, file_name):
         cur.execute(gen_insert_sql('tender_declaration_info', data))
         cnx.commit()
     except mysql.connector.Error as e:
-        outstr = 'Fail to update database (primary_key: {})\n\t{}'.format(primary_key, e)
-        logger.warn(outstr)
-        with open('load.err', 'a', encoding='utf-8') as err_file:
-            err_file.write(outstr)
+        if e.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            logger.error("Something is wrong with your user name or password.")
+        elif e.errno == errorcode.ER_BAD_DB_ERROR:
+            logger.error("Database does not exist.")
+        else:
+            outstr = 'Fail to update database (primary_key: {})\n\t{}'.format(primary_key, e)
+            logger.warn(outstr)
+            with open('load.err', 'a', encoding='utf-8') as err_file:
+                err_file.write(outstr)
     except AttributeError as e:
         outstr = 'Corrupted content. Update skipped (primary_key: {})\n\t{}'.format(primary_key, e)
         logger.warn(outstr)
         with open('load.err', 'a', encoding='utf-8') as err_file:
             err_file.write(outstr)
+    else:
+        cnx.close()
 
 
-def load_awarded(cnx, file_name):
+def load_awarded(cnx_info, file_name):
     pk_atm_main, tender_case_no, root_element = eta.init(file_name)
     if root_element is None \
             or pk_atm_main is None or tender_case_no is None \
@@ -104,6 +114,8 @@ def load_awarded(cnx, file_name):
     logger.info('Updating database (pkAtmMain: {}, tenderCaseNo: {})'.format(pk_atm_main, tender_case_no))
 
     try:
+        cnx = mysql.connector.connect(**cnx_info)
+        cnx.autocommit = False
         cur = cnx.cursor(buffered=True)
 
         data = eta.get_organization_info_dic(root_element)
@@ -137,12 +149,17 @@ def load_awarded(cnx, file_name):
         cur.execute(gen_insert_sql('award_info', data))
         cnx.commit()
     except mysql.connector.Error as e:
-        outstr = 'Fail to update database (pkAtmMain: {}, tenderCaseNo: {})\n\t{}'.format(pk_atm_main,
-                                                                                          tender_case_no,
-                                                                                          e)
-        logger.warn(outstr)
-        with open('load.err', 'a', encoding='utf-8') as err_file:
-            err_file.write(outstr)
+        if e.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            logger.error("Something is wrong with your user name or password.")
+        elif e.errno == errorcode.ER_BAD_DB_ERROR:
+            logger.error("Database does not exist.")
+        else:
+            outstr = 'Fail to update database (pkAtmMain: {}, tenderCaseNo: {})\n\t{}'.format(pk_atm_main,
+                                                                                              tender_case_no,
+                                                                                              e)
+            logger.warn(outstr)
+            with open('load.err', 'a', encoding='utf-8') as err_file:
+                err_file.write(outstr)
     except AttributeError as e:
         outstr = 'Corrupted content. Update skipped (pkAtmMain: {}, tenderCaseNo: {})\n\t{}'.format(pk_atm_main,
                                                                                                     tender_case_no,
@@ -150,6 +167,8 @@ def load_awarded(cnx, file_name):
         logger.warn(outstr)
         with open('load.err', 'a', encoding='utf-8') as err_file:
             err_file.write(outstr)
+    else:
+        cnx.close()
 
 
 def parse_args():
@@ -170,6 +189,8 @@ def parse_args():
                  dest='port', type='string', default='3306')
     p.add_option("-a", '--declaration', action="store_true",
                  dest='is_declaration')
+    p.add_option('-l', '--parallel', action='store',
+                 dest='parallel', type='int', default=1)
 
     return p.parse_args()
 
@@ -183,48 +204,38 @@ if __name__ == '__main__':
     port = options.port.strip()
     database = options.database.strip()
     is_declaration = options.is_declaration
+    parallel = options.parallel
+
     if user == '' or password == '' or host == '' or port == '' or database == '':
         logger.error('Database connection information is incomplete.')
         quit()
 
-    db_config = {'user': user,
+    connection_info = {'user': user,
                  'password': password,
                  'host': host,
                  'port': port,
                  'database': database
                  }
 
-    try:
-        db_connection = mysql.connector.connect(**db_config)
-        db_connection.autocommit = False
-
-        f = options.filename.strip()
-        if f != '':
-            if not os.path.isfile(f):
-                logger.error('File not found: ' + f)
-            else:
-                if is_declaration:
-                    load_declaration(db_connection, f)
-                else:
-                    load_awarded(db_connection, f)
-
-        d = options.directory.strip()
-        if d != '':
-            if not os.path.isdir(d):
-                logger.error('Directory not found: ' + d)
-            else:
-                for root, dirs, files in os.walk(d):
-                    for f in files:
-                        if is_declaration:
-                            load_declaration(db_connection, os.path.join(root, f))
-                        else:
-                            load_awarded(db_connection, os.path.join(root, f))
-    except mysql.connector.Error as err:
-        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-            logger.error("Something is wrong with your user name or password.")
-        elif err.errno == errorcode.ER_BAD_DB_ERROR:
-            logger.error("Database does not exist.")
+    f = options.filename.strip()
+    if f != '':
+        if not os.path.isfile(f):
+            logger.error('File not found: ' + f)
         else:
-            logger.error(err)
-    else:
-        db_connection.close()
+            if is_declaration:
+                load_declaration(connection_info, f)
+            else:
+                load_awarded(connection_info, f)
+
+    d = options.directory.strip()
+    if d != '':
+        if not os.path.isdir(d):
+            logger.error('Directory not found: ' + d)
+        else:
+            for root, dirs, files in os.walk(d):
+                if is_declaration:
+                    Parallel(n_jobs=parallel)(
+                        delayed(load_declaration)(connection_info, os.path.join(root, f)) for f in files)
+                else:
+                    Parallel(n_jobs=parallel)(
+                        delayed(load_awarded)(connection_info, os.path.join(root, f)) for f in files)
