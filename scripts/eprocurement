@@ -52,6 +52,7 @@ source $conf_file
 printf "eProcurement crawler configuration:\n"
 printf "  Python:              %s\n" "$python_exec"
 printf "  Crawler path:        %s\n" "$crawler_path"
+printf "  Archive list dir     %s\n" "$archive_list_dir"
 printf "  Awarded queryer:     %s\n" "$queryer_awarded"
 printf "  Declaration queryer: %s\n" "$queryer_declaration"
 printf "  Downloader:          %s\n" "$downloader"
@@ -108,11 +109,13 @@ queryer_declaration_fp="$crawler_path$queryer_declaration"
 downloader_fp="$crawler_path$downloader"
 loader_fp="$crawler_path$loader"
 
+mkdir -p "$archive_list_dir"
 if [ "$do_qa" == true ]; then
     echo "Start queryer (awarded)..."
     $python_exec $queryer_awarded_fp -s $start_date \
                                      -e $end_date \
                                      -f $file_awarded
+    cp "$file_awarded" "$archive_list_dir"
 fi
 
 if [ "$do_qd" == true ]; then
@@ -120,6 +123,7 @@ if [ "$do_qd" == true ]; then
     $python_exec $queryer_declaration_fp -s $start_date \
                                          -e $end_date \
                                          -f $file_declaration
+    cp "$file_declaration" "$archive_list_dir"
 fi
 
 if [ "$do_dl" == true ]; then
@@ -168,26 +172,27 @@ if [ "$do_load" == true ]; then
 
     if [ -d "$dir_declaration" ]; then
         echo "Start loader (declaration)..."
-        $python_exec $loader_fp -d $dir_declaration -u $db_user -p $db_password -i $db_host -b $db_database
+        $python_exec $loader_fp -a -d $dir_declaration -u $db_user -p $db_password -i $db_host -b $db_database
     fi
 fi
 
-cat > test.txt <<EOF
-python_exec="/home/galaxyh/code/venv/eprocurement/bin/python"
-crawler_path="/home/galaxyh/code/eprocurement-crawler/"
-queryer_awarded="queryer_awarded.py"
-queryer_declaration="queryer_declaration.py"
-downloader="downloader.py"
-loader="loader_postgresql.py"
-dataset_path="/home/galaxyh/datasets/eprocurement/"
-prefix_awarded="awarded"
-prefix_declaration="declaration"
-proxy="127.0.0.1:5566"
-parallel="36"
-max_retry="10"
-db_user="eprocurement"
-db_password="eprocurement"
-db_host="localhost"
-db_database="TW_PROCUREMENT"
-last_update="20051231"
+cat > "$conf_file" <<EOF
+python_exec="$python_exec"
+crawler_path="$crawler_path"
+archive_list_dir="$archive_list_dir"
+queryer_awarded="$queryer_awarded"
+queryer_declaration="$queryer_declaration"
+downloader="$downloader"
+loader="$loader"
+dataset_path="$dataset_path"
+prefix_awarded="$prefix_awarded"
+prefix_declaration="$prefix_declaration"
+proxy="$proxy"
+parallel="$parallel"
+max_retry="$max_retry"
+db_user="$db_user"
+db_password="$db_password"
+db_host="$db_host"
+db_database="$db_database"
+last_update="$last_update"
 EOF
