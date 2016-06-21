@@ -72,7 +72,7 @@ def date_conversion(element):
 
 def money_conversion(element):
     m = re.match(r'\$?-?([\d,\.]+)', ''.join(element.split()))
-    return int(''.join(m.group(0).split(',')))
+    return int(float(''.join(m.group(0).split(','))))
 
 
 def tel_conversion(element):
