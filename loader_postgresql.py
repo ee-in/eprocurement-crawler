@@ -50,7 +50,7 @@ def gen_insert_sql(table, data_dict):
     return sql_str
 
 
-def load_declaration(cnx, file_name):
+def load_declaration(cnx_info, file_name):
     primary_key, root_element = etd.init(file_name)
     if root_element is None or primary_key is None or primary_key == '':
         logger.error('Fail to extract data from file: ' + file_name)
@@ -59,6 +59,8 @@ def load_declaration(cnx, file_name):
     logger.info('Updating database (primaryKey: {})'.format(primary_key))
 
     try:
+        cnx = psycopg2.connect(**cnx_info)
+        cnx.autocommit = False
         cur = cnx.cursor()
 
         data = etd.get_organization_info_dic(root_element)
@@ -81,9 +83,11 @@ def load_declaration(cnx, file_name):
         logger.warn(outstr)
         with open('load.err', 'a', encoding='utf-8') as err_file:
             err_file.write(outstr)
+    else:
+        cnx.close()
 
 
-def load_awarded(cnx, file_name):
+def load_awarded(cnx_info, file_name):
     pk_atm_main, tender_case_no, root_element = eta.init(file_name)
     if root_element is None \
             or pk_atm_main is None or tender_case_no is None \
@@ -95,6 +99,8 @@ def load_awarded(cnx, file_name):
     logger.info('Updating database (pkAtmMain: {}, tenderCaseNo: {})'.format(pk_atm_main, tender_case_no))
 
     try:
+        cnx = psycopg2.connect(**cnx_info)
+        cnx.autocommit = False
         cur = cnx.cursor()
 
         data = eta.get_organization_info_dic(root_element)
@@ -142,6 +148,8 @@ def load_awarded(cnx, file_name):
         logger.warn(outstr)
         with open('load.err', 'a', encoding='utf-8') as err_file:
             err_file.write(outstr)
+    else:
+        cnx.close()
 
 
 def parse_args():
@@ -183,33 +191,33 @@ if __name__ == '__main__':
         logger.error('Database connection information is incomplete.')
         quit()
 
-    try:
-        db_connection = psycopg2.connect(database=database, user=user, password=password, host=host, port=port)
-        db_connection.autocommit = False
+    connection_info = {
+        'database': database,
+        'user': user,
+        'password': password,
+        'host': host,
+        'port': port
+    }
 
-        f = options.filename.strip()
-        if f != '':
-            if not os.path.isfile(f):
-                logger.error('File not found: ' + f)
+    f = options.filename.strip()
+    if f != '':
+        if not os.path.isfile(f):
+            logger.error('File not found: ' + f)
+        else:
+            if is_declaration:
+                load_declaration(connection_info, f)
             else:
+                load_awarded(connection_info, f)
+
+    d = options.directory.strip()
+    if d != '':
+        if not os.path.isdir(d):
+            logger.error('Directory not found: ' + d)
+        else:
+            for root, dirs, files in os.walk(d):
                 if is_declaration:
-                    load_declaration(db_connection, f)
+                    Parallel(n_jobs=parallel)(
+                        delayed(load_declaration)(connection_info, os.path.join(root, f)) for f in files)
                 else:
-                    load_awarded(db_connection, f)
-
-        d = options.directory.strip()
-        if d != '':
-            if not os.path.isdir(d):
-                logger.error('Directory not found: ' + d)
-            else:
-                for root, dirs, files in os.walk(d):
-                    if is_declaration:
-                        Parallel(n_jobs=parallel)(
-                            delayed(load_declaration)(db_connection, os.path.join(root, f)) for f in files)
-                    else:
-                        Parallel(n_jobs=parallel)(
-                            delayed(load_awarded)(db_connection, os.path.join(root, f)) for f in files)
-    except psycopg2.Error as err:
-        logger.error(err)
-    else:
-        db_connection.close()
+                    Parallel(n_jobs=parallel)(
+                        delayed(load_awarded)(connection_info, os.path.join(root, f)) for f in files)
