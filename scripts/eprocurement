@@ -65,7 +65,8 @@ printf "  DB password:         %s\n" "$db_password"
 printf "  DB host:             %s\n" "$db_host"
 printf "  DB database name:    %s\n" "$db_database"
 printf "  Proxy:               %s\n" "$proxy"
-printf "  Parallel:            %s\n" "$parallel"
+printf "  Parallel (download): %s\n" "$parallel_downloader"
+printf "  Parallel (loader):   %s\n" "$parallel_loader"
 printf "  Max retry:           %s\n" "$max_retry"
 printf "  Last update date:    %s\n" "$last_update"
 printf "\n"
@@ -134,18 +135,18 @@ if [ "$do_dl" == true ]; then
         if [ -f "$file_awarded" ]; then
             echo "Start downloader (awarded)..."
             if [ "$proxy" != "" ]; then
-                $python_exec $downloader_fp -f $file_awarded -d $dir_awarded -x $proxy -p $parallel
+                $python_exec $downloader_fp -f $file_awarded -d $dir_awarded -x $proxy -p $parallel_downloader
             else
-                $python_exec $downloader_fp -f $file_awarded -d $dir_awarded -p $parallel
+                $python_exec $downloader_fp -f $file_awarded -d $dir_awarded -p $parallel_downloader
             fi
         fi
 
         if [ -f "$file_declaration" ]; then
             echo "Start downloader (declaration)..."
             if [ "$proxy" != "" ]; then
-                $python_exec $downloader_fp -f $file_declaration -d $dir_declaration -x $proxy -p $parallel
+                $python_exec $downloader_fp -f $file_declaration -d $dir_declaration -x $proxy -p $parallel_downloader
             else
-                $python_exec $downloader_fp -f $file_declaration -d $dir_declaration -p $parallel
+                $python_exec $downloader_fp -f $file_declaration -d $dir_declaration -p $parallel_downloader
             fi
         fi
 
@@ -167,12 +168,12 @@ fi
 if [ "$do_load" == true ]; then
     if [ -d "$dir_awarded" ]; then
         echo "Start loader (awarded)..."
-        $python_exec $loader_fp -d $dir_awarded -u $db_user -p $db_password -i $db_host -b $db_database -l $parallel
+        $python_exec $loader_fp -d $dir_awarded -u $db_user -p $db_password -i $db_host -b $db_database -l $parallel_loader
     fi
 
     if [ -d "$dir_declaration" ]; then
         echo "Start loader (declaration)..."
-        $python_exec $loader_fp -a -d $dir_declaration -u $db_user -p $db_password -i $db_host -b $db_database -l $parallel
+        $python_exec $loader_fp -a -d $dir_declaration -u $db_user -p $db_password -i $db_host -b $db_database -l $parallel_loader
     fi
 fi
 
@@ -188,7 +189,8 @@ dataset_path="$dataset_path"
 prefix_awarded="$prefix_awarded"
 prefix_declaration="$prefix_declaration"
 proxy="$proxy"
-parallel="$parallel"
+parallel_downloader="$parallel_downloader"
+parallel_loader="$parallel_loader"
 max_retry="$max_retry"
 db_user="$db_user"
 db_password="$db_password"
