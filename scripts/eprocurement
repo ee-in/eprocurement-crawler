@@ -59,10 +59,14 @@ printf "  Loader:              %s\n" "$loader"
 printf "  Dataset path:        %s\n" "$dataset_path"
 printf "  Awarded prefix:      %s\n" "$prefix_awarded"
 printf "  Declaration prefix:  %s\n" "$prefix_declaration"
-printf "  Last update date:    %s\n" "$last_update"
+printf "  DB user name:        %s\n" "$db_user"
+printf "  DB password:         %s\n" "$db_password"
+printf "  DB host:             %s\n" "$db_host"
+printf "  DB database name:    %s\n" "$db_database"
 printf "  Proxy:               %s\n" "$proxy"
 printf "  Parallel:            %s\n" "$parallel"
 printf "  Max retry:           %s\n" "$max_retry"
+printf "  Last update date:    %s\n" "$last_update"
 printf "\n"
 
 if [ "$start_date" == "" ]; then
@@ -71,6 +75,7 @@ fi
 
 if [ "$end_date" == "" ]; then
     end_date=$(date -d "-1 days" +"%Y%m%d")
+    last_update="$end_date"
 fi
 
 if [ "$max_retry" == "" ]; then
@@ -155,3 +160,34 @@ if [ "$do_dl" == true ]; then
     done
 fi
 
+if [ "$do_load" == true ]; then
+    if [ -d "$dir_awarded" ]; then
+        echo "Start loader (awarded)..."
+        $python_exec $loader_fp -d $dir_awarded -u $db_user -p $db_password -i $db_host -b $db_database
+    fi
+
+    if [ -d "$dir_declaration" ]; then
+        echo "Start loader (declaration)..."
+        $python_exec $loader_fp -d $dir_declaration -u $db_user -p $db_password -i $db_host -b $db_database
+    fi
+fi
+
+cat > test.txt <<EOF
+python_exec="/home/galaxyh/code/venv/eprocurement/bin/python"
+crawler_path="/home/galaxyh/code/eprocurement-crawler/"
+queryer_awarded="queryer_awarded.py"
+queryer_declaration="queryer_declaration.py"
+downloader="downloader.py"
+loader="loader_postgresql.py"
+dataset_path="/home/galaxyh/datasets/eprocurement/"
+prefix_awarded="awarded"
+prefix_declaration="declaration"
+proxy="127.0.0.1:5566"
+parallel="36"
+max_retry="10"
+db_user="eprocurement"
+db_password="eprocurement"
+db_host="localhost"
+db_database="TW_PROCUREMENT"
+last_update="20051231"
+EOF
