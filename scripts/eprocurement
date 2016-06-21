@@ -167,12 +167,12 @@ fi
 if [ "$do_load" == true ]; then
     if [ -d "$dir_awarded" ]; then
         echo "Start loader (awarded)..."
-        $python_exec $loader_fp -d $dir_awarded -u $db_user -p $db_password -i $db_host -b $db_database
+        $python_exec $loader_fp -d $dir_awarded -u $db_user -p $db_password -i $db_host -b $db_database -l $parallel
     fi
 
     if [ -d "$dir_declaration" ]; then
         echo "Start loader (declaration)..."
-        $python_exec $loader_fp -a -d $dir_declaration -u $db_user -p $db_password -i $db_host -b $db_database
+        $python_exec $loader_fp -a -d $dir_declaration -u $db_user -p $db_password -i $db_host -b $db_database -l $parallel
     fi
 fi
 

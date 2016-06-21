@@ -9,6 +9,7 @@ import extractor_awarded as eta
 import extractor_declaration as etd
 from datetime import datetime, date
 from optparse import OptionParser
+from joblib import Parallel, delayed
 
 __author__ = "Yu-chun Huang"
 __version__ = "1.0.0b"
@@ -161,6 +162,8 @@ def parse_args():
                  dest='port', type='string', default='5432')
     p.add_option("-a", '--declaration', action="store_true",
                  dest='is_declaration')
+    p.add_option('-l', '--parallel', action='store',
+                 dest='parallel', type='int', default=1)
 
     return p.parse_args()
 
@@ -174,6 +177,8 @@ if __name__ == '__main__':
     port = options.port.strip()
     database = options.database.strip()
     is_declaration = options.is_declaration
+    parallel = options.parallel
+
     if user == '' or password == '' or host == '' or port == '' or database == '':
         logger.error('Database connection information is incomplete.')
         quit()
@@ -198,11 +203,12 @@ if __name__ == '__main__':
                 logger.error('Directory not found: ' + d)
             else:
                 for root, dirs, files in os.walk(d):
-                    for f in files:
-                        if is_declaration:
-                            load_declaration(db_connection, os.path.join(root, f))
-                        else:
-                            load_awarded(db_connection, os.path.join(root, f))
+                    if is_declaration:
+                        Parallel(n_jobs=parallel)(
+                            delayed(load_declaration)(db_connection, os.path.join(root, f)) for f in files)
+                    else:
+                        Parallel(n_jobs=parallel)(
+                            delayed(load_awarded)(db_connection, os.path.join(root, f)) for f in files)
     except psycopg2.Error as err:
         logger.error(err)
     else:
